@@ -11,6 +11,6 @@ Route::post('login', [AuthController::class, 'login']);
 // routes protected
 Route::middleware(['jwt.auth'])->group(function () {
     Route::get('suppliers', [SupplierController::class, 'index']);
-    Route::post('suppliers/{supplier}/sync', [SyncController::class, 'sync']);
+    Route::post('suppliers/{supplier}/sync', [SyncController::class, 'syncSupplier']);
     Route::get('products', [ProductController::class, 'index']);
 });
