@@ -13,7 +13,7 @@ class SuppliersTableSeeder extends Seeder
             ['slug' => 'magalu-supplier'],
             [
                 'name' => 'Magalu Supplier',
-                'api_base_url' => 'http://b2b-platform-staging.luizalabs.com/api/',
+                'api_base_url' => 'https://b2b-platform-staging.luizalabs.com/api/v1/',
                 'api_key' => null,
                 'status' => 'active'
             ]
