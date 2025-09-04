@@ -1,19 +1,16 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\SupplierController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\SyncController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
-*/
+Route::post('login', [AuthController::class, 'login']);
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+// routes protected
+Route::middleware(['jwt.auth'])->group(function () {
+    Route::get('suppliers', [SupplierController::class, 'index']);
+    Route::post('suppliers/{supplier}/sync', [SyncController::class, 'sync']);
+    Route::get('products', [ProductController::class, 'index']);
 });
