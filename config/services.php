@@ -31,4 +31,8 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'magalu' => [
+        'base_url' => env('MAGALU_BASE_URL', 'https://b2b-platform-staging.luizalabs.com/api/v1/'),
+        'api_key' => env('MAGALU_API_KEY'),
+    ],
 ];
