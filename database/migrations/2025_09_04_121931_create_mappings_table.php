@@ -11,13 +11,13 @@ class CreateMappingsTable extends Migration
         Schema::create('mappings', function (Blueprint $table) {
             $table->id();
             $table->string('mapping_type'); // 'department','category','store', etc.
-            $table->unsignedBigInteger('local_id'); // our local id (e.g. departments.id)
+            $table->unsignedBigInteger('local_id'); // troca pontos local id (e.g. departments.id)
             $table->foreignId('supplier_id')->constrained('suppliers');
             $table->string('supplier_external_id')->nullable();
             $table->string('supplier_external_name')->nullable();
             $table->timestamps();
 
-            $table->index(['mapping_type', 'supplier_id', 'supplier_external_id']);
+            $table->index(['mapping_type', 'supplier_id', 'supplier_external_id']); // facilitates the search
         });
     }
 
