@@ -2,29 +2,35 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Models\Supplier;
-use App\Services\SupplierSyncService;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Services\SyncServiceFactory;
 
 class SyncController extends Controller
 {
-    protected $syncService;
-
-    public function __construct(SupplierSyncService $syncService)
+    public function syncSupplier($supplier)
     {
-        $this->syncService = $syncService;
-    }
+        try {
+            $service = SyncServiceFactory::make($supplier);
 
-    public function sync(Supplier $supplier, Request $request)
-    {
-        // synchronous sync
-        $result = $this->syncService->syncSupplier($supplier);
+            $success = $service->syncAll();
 
-        if ($result['success']) {
-            return response()->json(['success' => true, 'message' => 'Sync completed', 'processed' => $result['processed']]);
+            return response()->json([
+                'success' => $success,
+                'message' => $success
+                    ? ucfirst($supplier) . ' products synced successfully.'
+                    : 'Error syncing ' . $supplier . ' products.'
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unexpected error: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json(['success' => false, 'message' => 'Sync failed', 'error' => $result['message'] ?? null], 500);
     }
 }
