@@ -105,7 +105,7 @@ class MagaluSyncService
             'Accept' => 'application/json',
             'Authorization' => "Bearer {$this->apiKey}"
         ])->get($this->baseUrl . '/products', [
-            '_limit' => 10,
+            '_limit' => 1000,
             '_page' => 1
         ]);
 
