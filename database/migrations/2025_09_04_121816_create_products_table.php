@@ -15,7 +15,6 @@ class CreateProductsTable extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->decimal('price', 12, 2)->nullable();
-            $table->foreignId('category_id')->nullable()->constrained('categories')->nullOnDelete();
             $table->foreignId('department_id')->nullable()->constrained('departments')->nullOnDelete();
             $table->foreignId('store_id')->nullable()->constrained('stores')->nullOnDelete();
             $table->json('extra')->nullable();
