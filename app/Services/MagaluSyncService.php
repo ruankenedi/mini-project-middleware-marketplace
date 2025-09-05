@@ -17,42 +17,27 @@ class MagaluSyncService
         $this->apiKey = config('services.magalu.api_key');
     }
 
-    public function syncProducts()
+    public function syncAll()
     {
+        DB::beginTransaction();
+
         try {
-            $response = Http::withHeaders([
-                'Authorization' => "Bearer {$this->apiKey}"
-            ])->get($this->baseUrl . '/products');
+            $this->syncCategories();
+            $this->syncProducts();
 
-            if ($response->failed()) {
-                throw new Exception("Failed to fetch products from Magalu");
-            }
-
-            $products = $response->json()['data'] ?? [];
-
-            foreach ($products as $product) {
-                DB::table('products')->updateOrInsert(
-                    ['external_id' => $product['id'], 'supplier_id' => 1], // 1 = Magalu
-                    [
-                        'name' => $product['name'],
-                        'price' => $product['price'] ?? 0,
-                        'department_id' => null, // ajusta depois com mappings
-                        'category_id' => null,
-                        'store_id' => null,
-                        'updated_at' => now(),
-                    ]
-                );
-            }
+            DB::commit();
 
             DB::table('sync_logs')->insert([
                 'supplier_id' => 1,
                 'status' => 'success',
-                'message' => 'Products synced successfully',
+                'message' => 'Departments, Categories and products synced successfully',
                 'created_at' => now()
             ]);
 
             return true;
         } catch (Exception $e) {
+            DB::rollBack();
+
             DB::table('sync_logs')->insert([
                 'supplier_id' => 1,
                 'status' => 'error',
@@ -62,5 +47,105 @@ class MagaluSyncService
 
             return false;
         }
+    }
+
+    // Sync departments and categories     
+    public function syncCategories()
+    {
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+            'Authorization' => "Bearer {$this->apiKey}"
+        ])->get($this->baseUrl . '/categories');
+
+        if ($response->failed()) {
+            throw new Exception("Failed to fetch categories from Magalu");
+        }
+
+        $categories = $response->json() ?? [];
+
+        foreach ($categories as $category) {
+            DB::table('departments')->updateOrInsert(
+                [
+                    'external_id' => $category['id'],
+                    'supplier_id' => 1
+                ],
+                [
+                    'name' => $category['name'] ?? '',
+                    'updated_at' => now()
+                ]
+            );
+
+            foreach ($category['sub_categories'] as $sub) {
+                DB::table('categories')->updateOrInsert(
+                    [
+                        'external_id' => $sub['id'],
+                        'supplier_id' => 1
+                    ],
+                    [
+                        'name' => $sub['name'] ?? '',
+                        'updated_at' => now()
+                    ]
+                );
+            }
+        }
+    }
+
+    // Sync products
+    public function syncProducts()
+    {
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+            'Authorization' => "Bearer {$this->apiKey}"
+        ])->get($this->baseUrl . '/products', [
+            '_limit' => 10,
+            '_page' => 1
+        ]);
+
+        if ($response->failed()) {
+            throw new Exception("Failed to fetch products from Magalu");
+        }
+
+        $products = $response->json() ?? [];
+
+        foreach ($products as $product) {
+            DB::table('products')->updateOrInsert(
+                ['external_id' => $product['id'], 'supplier_id' => 1],
+                [
+                    'name' => $product['title'],
+                    'description' => $product['description'],
+                    'price' => $product['price'] ?? 0,
+                    'department_id' => $this->resolveDepartmentsId($product['categories'][0]['id'] ?? null),
+                    'category_id' => null,
+                    'store_id' => null,
+                    'updated_at' => now()
+                ]
+            );
+        }
+    }
+
+    // Helper for linking departments to products
+    protected function resolveDepartmentsId($externalDepartmentId)
+    {
+        if (!$externalDepartmentId) {
+            return null;
+        }
+
+        return DB::table('departments')
+            ->where('external_id', $externalDepartmentId)
+            ->where('supplier_id', 1)
+            ->value('id');
+    }
+
+    // Helper for linking departments to categories
+    protected function resolveCategoryId($externalCategoryId)
+    {
+        if (!$externalCategoryId) {
+            return null;
+        }
+
+        return DB::table('categories')
+            ->where('external_id', $externalCategoryId)
+            ->where('supplier_id', 1)
+            ->value('id');
     }
 }
