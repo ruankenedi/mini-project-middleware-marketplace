@@ -61,28 +61,36 @@ class MagaluSyncService
             throw new Exception("Failed to fetch categories from Magalu");
         }
 
-        $categories = $response->json() ?? [];
+        $departments = $response->json() ?? [];
 
-        foreach ($categories as $category) {
+        foreach ($departments as $department) {
             DB::table('departments')->updateOrInsert(
                 [
-                    'external_id' => $category['id'],
+                    'external_id' => $department['id'],
                     'supplier_id' => 1
                 ],
                 [
-                    'name' => $category['name'] ?? '',
+                    'name' => $department['name'] ?? '',
                     'updated_at' => now()
                 ]
             );
 
-            foreach ($category['sub_categories'] as $sub) {
+            // Get the ID of the newly inserted or updated department
+            $departmentId = DB::table('departments')
+                ->where('external_id', $department['id'])
+                ->where('supplier_id', 1)
+                ->value('id');
+
+            // Save the subcategories with the department_id
+            foreach ($department['sub_categories'] as $sub_categories) {
                 DB::table('categories')->updateOrInsert(
                     [
-                        'external_id' => $sub['id'],
+                        'external_id' => $sub_categories['id'],
                         'supplier_id' => 1
                     ],
                     [
-                        'name' => $sub['name'] ?? '',
+                        'name' => $sub_categories['name'] ?? '',
+                        'department_id' => $departmentId,
                         'updated_at' => now()
                     ]
                 );
@@ -115,7 +123,6 @@ class MagaluSyncService
                     'description' => $product['description'],
                     'price' => $product['price'] ?? 0,
                     'department_id' => $this->resolveDepartmentsId($product['categories'][0]['id'] ?? null),
-                    'category_id' => null,
                     'store_id' => null,
                     'updated_at' => now()
                 ]
@@ -132,19 +139,6 @@ class MagaluSyncService
 
         return DB::table('departments')
             ->where('external_id', $externalDepartmentId)
-            ->where('supplier_id', 1)
-            ->value('id');
-    }
-
-    // Helper for linking departments to categories
-    protected function resolveCategoryId($externalCategoryId)
-    {
-        if (!$externalCategoryId) {
-            return null;
-        }
-
-        return DB::table('categories')
-            ->where('external_id', $externalCategoryId)
             ->where('supplier_id', 1)
             ->value('id');
     }
